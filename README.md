@@ -26,7 +26,7 @@
 
 ## 螢幕截圖
 
-<img width="1080" height="2400" alt="image" src="https://github.com/user-attachments/assets/6551e545-cc65-4de0-9653-79c311717464" />
+<img width="540" height="1200" alt="image" src="https://github.com/user-attachments/assets/6551e545-cc65-4de0-9653-79c311717464" />
 
 
 ## 資料來源
