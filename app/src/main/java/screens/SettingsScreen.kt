@@ -7,7 +7,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight // 雖然可能不會再用到，但保留 import 不會影響
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 
@@ -74,7 +73,6 @@ fun SettingsScreen(
                 Text(
                     text = "版本",
                     style = MaterialTheme.typography.bodyLarge
-                    // --- 就是移除了這一行： fontWeight = FontWeight.Bold ---
                 )
                 Text(
                     text = "Youbike 站點查詢 v1.0",

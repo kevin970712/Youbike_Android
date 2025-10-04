@@ -31,7 +31,7 @@ data class YouBikeUiState(
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val errorMessage: String? = null,
-    val toastMessage: String? = null // ✨ 新增點 1: 用於顯示 Toast 的狀態
+    val toastMessage: String? = null
 )
 
 class YouBikeViewModel(application: Application) : AndroidViewModel(application) {
@@ -50,7 +50,6 @@ class YouBikeViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    // ✨ 新增點 2: 清除 Toast 訊息的方法
     fun clearToastMessage() {
         _uiState.update { it.copy(toastMessage = null) }
     }
@@ -118,13 +117,11 @@ class YouBikeViewModel(application: Application) : AndroidViewModel(application)
                             emptySpaces = vehicleInfo?.emptySpaces
                         )
                     }
-                    // ✨ 修改點 3: 刷新成功時設定成功訊息
                     _uiState.update { it.copy(favoriteStations = results, isRefreshing = false, toastMessage = "刷新成功") }
                 } else {
                     _uiState.update { it.copy(isRefreshing = false) }
                 }
             } catch (e: Exception) {
-                // ✨ 修改點 4: 刷新失敗時設定失敗訊息
                 _uiState.update {
                     it.copy(
                         isRefreshing = false,
@@ -168,10 +165,8 @@ class YouBikeViewModel(application: Application) : AndroidViewModel(application)
                         emptySpaces = vehicleInfo?.emptySpaces ?: 0
                     )
                 }
-                // ✨ 修改點 5: 刷新成功時設定成功訊息
                 _uiState.update { it.copy(searchResults = results, isRefreshing = false, toastMessage = "刷新成功") }
             } catch (e: Exception) {
-                // ✨ 修改點 6: 刷新失敗時設定失敗訊息
                 _uiState.update {
                     it.copy(
                         isRefreshing = false,

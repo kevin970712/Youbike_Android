@@ -58,28 +58,17 @@ dependencies {
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
-
-    // Navigation for Compose
-    implementation("androidx.navigation:navigation-compose:2.7.7")
-
-    // Retrofit: 處理網路請求的核心函式庫
-    implementation("com.squareup.retrofit2:retrofit:2.9.0")
-
-    // --- ✨ 這就是解決問題的關鍵：手動加入 OkHttp 函式庫 ✨ ---
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
-
-    // Kotlinx Serialization Converter: 讓 Retrofit 支援 Kotlin 的 JSON 解析
-    implementation("com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:1.0.0")
-
-    // Kotlinx Serialization: 處理 JSON 的核心函式庫
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
-
-    // ViewModel: 管理 UI 相關資料的生命週期
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.0")
-    implementation("androidx.datastore:datastore-preferences:1.1.1")
-    implementation("androidx.compose.material3:material3:1.3.0")
     implementation("androidx.compose.material:material:1.6.7")
 
+    implementation("androidx.navigation:navigation-compose:2.7.7")
+
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:1.0.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.0")
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
