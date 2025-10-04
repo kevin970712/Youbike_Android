@@ -3,6 +3,7 @@ package com.android.youbike
 import android.app.Activity
 import android.app.Application
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -13,11 +14,14 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.ExperimentalMaterialApi // ✨ 引入點 1: 引入實驗性 API 的註解
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.*
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox // ✨ 關鍵 import
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -90,7 +94,8 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+// ✨ 修正點: 同時 Opt-In Material3 和 Material 的實驗性 API
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Composable
 fun MainScreen(
     navController: NavController,
@@ -101,7 +106,28 @@ fun MainScreen(
         { stationInfo -> viewModel.toggleFavorite(stationInfo) }
     }
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
     var query by rememberSaveable { mutableStateOf("") }
+
+    val onRefresh = {
+        if (uiState.isSearching) {
+            viewModel.refreshSearchResults(query)
+        } else {
+            viewModel.refreshFavoriteStations()
+        }
+    }
+
+    val pullRefreshState = rememberPullRefreshState(
+        refreshing = uiState.isRefreshing,
+        onRefresh = onRefresh
+    )
+
+    LaunchedEffect(key1 = uiState.toastMessage) {
+        uiState.toastMessage?.let { message ->
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+            viewModel.clearToastMessage()
+        }
+    }
 
     BackHandler(enabled = uiState.isSearching) {
         viewModel.clearSearchResults()
@@ -118,7 +144,7 @@ fun MainScreen(
                 onQueryChange = { query = it },
                 onSettingsClicked = { navController.navigate("settings") },
                 onSearch = {
-                    viewModel.searchStations(it)
+                    viewModel.searchStations(query)
                 }
             )
         }
@@ -135,41 +161,17 @@ fun MainScreen(
                 },
             color = MaterialTheme.colorScheme.background
         ) {
-            val stationsToShow = if (uiState.isSearching) {
-                uiState.searchResults
-            } else {
-                uiState.favoriteStations
-            }
-
-            PullToRefreshBox(
-                isRefreshing = uiState.isRefreshing,
-                onRefresh = {
-                    if (uiState.isSearching) {
-                        viewModel.refreshSearchResults(query)
-                    } else {
-                        viewModel.refreshFavoriteStations()
-                    }
-                },
-                modifier = Modifier.fillMaxSize()
-            ) {
+            Box(modifier = Modifier.pullRefresh(pullRefreshState)) {
+                val stationsToShow = if (uiState.isSearching) uiState.searchResults else uiState.favoriteStations
                 when {
                     uiState.isLoading && stationsToShow.isEmpty() -> {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             CircularProgressIndicator()
                         }
                     }
                     uiState.errorMessage != null -> {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = uiState.errorMessage!!,
-                                color = MaterialTheme.colorScheme.error
-                            )
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text(text = uiState.errorMessage!!, color = MaterialTheme.colorScheme.error)
                         }
                     }
                     stationsToShow.isNotEmpty() -> {
@@ -189,23 +191,23 @@ fun MainScreen(
                         }
                     }
                     else -> {
-                        val message = if (uiState.isSearching) {
-                            "找不到符合條件的站點"
-                        } else {
-                            "點擊卡片右上角的愛心來收藏站點"
-                        }
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(text = message)
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            val message = if (uiState.isSearching) "找不到符合條件的站點" else "點擊卡片右上角的愛心來收藏站點"
+                            Text(text = message, modifier = Modifier.padding(16.dp))
                         }
                     }
                 }
+
+                PullRefreshIndicator(
+                    refreshing = uiState.isRefreshing,
+                    state = pullRefreshState,
+                    modifier = Modifier.align(Alignment.TopCenter)
+                )
             }
         }
     }
 }
+
 
 @Composable
 fun StationResultItem(
@@ -220,22 +222,11 @@ fun StationResultItem(
     ) {
         Box {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = result.info.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
+                Text(text = result.info.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = result.info.address,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Text(text = result.info.address, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(modifier = Modifier.height(12.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceAround
-                ) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
                     BikeInfo("YouBike 2.0", result.availableBikes?.toString() ?: "--")
                     BikeInfo("Youbike 2.0E", result.availableEBikes?.toString() ?: "--")
                     BikeInfo("可停空位", result.emptySpaces?.toString() ?: "--")

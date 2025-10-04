@@ -29,8 +29,9 @@ data class YouBikeUiState(
     val favoriteStations: List<StationResult> = emptyList(),
     val isSearching: Boolean = false,
     val isLoading: Boolean = false,
-    val isRefreshing: Boolean = false, // ✨ 新增刷新狀態
-    val errorMessage: String? = null
+    val isRefreshing: Boolean = false,
+    val errorMessage: String? = null,
+    val toastMessage: String? = null // ✨ 新增點 1: 用於顯示 Toast 的狀態
 )
 
 class YouBikeViewModel(application: Application) : AndroidViewModel(application) {
@@ -49,12 +50,16 @@ class YouBikeViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    // ✨ 新增點 2: 清除 Toast 訊息的方法
+    fun clearToastMessage() {
+        _uiState.update { it.copy(toastMessage = null) }
+    }
+
     fun toggleFavorite(stationInfo: StationInfo) {
         viewModelScope.launch {
             val currentFavorites = userPreferencesRepository.favoriteStations.first().toMutableList()
             val existing = currentFavorites.find { it.stationNo == stationInfo.stationNo }
 
-            // 1. 更新 DataStore (永久儲存)
             if (existing != null) {
                 currentFavorites.remove(existing)
             } else {
@@ -62,11 +67,9 @@ class YouBikeViewModel(application: Application) : AndroidViewModel(application)
             }
             userPreferencesRepository.saveFavoriteStations(currentFavorites)
 
-            // 2. 手動同步更新 searchResults 列表的狀態 (即時 UI 反應)
             _uiState.update { currentState ->
                 val updatedSearchResults = currentState.searchResults.map { result ->
                     if (result.info.stationNo == stationInfo.stationNo) {
-                        // 找到對應的站點，反轉它的 isFavorite 狀態
                         result.copy(isFavorite = !result.isFavorite)
                     } else {
                         result
@@ -74,7 +77,6 @@ class YouBikeViewModel(application: Application) : AndroidViewModel(application)
                 }
                 currentState.copy(searchResults = updatedSearchResults)
             }
-            // `favoriteStations` 列表會因為 DataStore 的 collect 自動更新，無需手動處理
         }
     }
 
@@ -99,7 +101,6 @@ class YouBikeViewModel(application: Application) : AndroidViewModel(application)
         _uiState.update { it.copy(searchResults = emptyList(), isSearching = false, errorMessage = null) }
     }
 
-    // ✨ 新增：刷新收藏站點的方法
     fun refreshFavoriteStations() {
         viewModelScope.launch {
             _uiState.update { it.copy(isRefreshing = true, errorMessage = null) }
@@ -117,22 +118,23 @@ class YouBikeViewModel(application: Application) : AndroidViewModel(application)
                             emptySpaces = vehicleInfo?.emptySpaces
                         )
                     }
-                    _uiState.update { it.copy(favoriteStations = results, isRefreshing = false) }
+                    // ✨ 修改點 3: 刷新成功時設定成功訊息
+                    _uiState.update { it.copy(favoriteStations = results, isRefreshing = false, toastMessage = "刷新成功") }
                 } else {
                     _uiState.update { it.copy(isRefreshing = false) }
                 }
             } catch (e: Exception) {
+                // ✨ 修改點 4: 刷新失敗時設定失敗訊息
                 _uiState.update {
                     it.copy(
                         isRefreshing = false,
-                        errorMessage = "刷新失敗：${e.message}"
+                        toastMessage = "刷新失敗"
                     )
                 }
             }
         }
     }
 
-    // ✨ 新增：刷新搜尋結果的方法
     fun refreshSearchResults(query: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isRefreshing = true, errorMessage = null) }
@@ -166,12 +168,14 @@ class YouBikeViewModel(application: Application) : AndroidViewModel(application)
                         emptySpaces = vehicleInfo?.emptySpaces ?: 0
                     )
                 }
-                _uiState.update { it.copy(searchResults = results, isRefreshing = false) }
+                // ✨ 修改點 5: 刷新成功時設定成功訊息
+                _uiState.update { it.copy(searchResults = results, isRefreshing = false, toastMessage = "刷新成功") }
             } catch (e: Exception) {
+                // ✨ 修改點 6: 刷新失敗時設定失敗訊息
                 _uiState.update {
                     it.copy(
                         isRefreshing = false,
-                        errorMessage = "刷新失敗：${e.message}"
+                        toastMessage = "刷新失敗"
                     )
                 }
             }

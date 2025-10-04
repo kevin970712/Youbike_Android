@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -23,23 +24,28 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun MySearchBar(
     modifier: Modifier = Modifier,
-    // --- ✨ 新增的參數 ✨ ---
-    query: String,
-    onQueryChange: (String) -> Unit,
-    // --- ✨ 原有的參數 ✨ ---
+    query: String,                       // ✨ 變更點 1: 接收外部傳入的 query
+    onQueryChange: (String) -> Unit,     // ✨ 變更點 2: 接收外部傳入的更新函式
     onSettingsClicked: () -> Unit,
-    onSearch: (String) -> Unit
+    onSearch: () -> Unit                 // ✨ 變更點 3: onSearch 不再需要傳遞字串
 ) {
-    // --- 移除了內部的 query 和 isFocused 狀態 ---
+    // var query by remember { mutableStateOf("") } // ✨ 變更點 4: 移除內部狀態，實現狀態提升
+    var isFocused by remember { mutableStateOf(false) }
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
 
     OutlinedTextField(
-        value = query, // 使用外部傳入的 query
-        onValueChange = onQueryChange, // 使用外部傳入的 onQueryChange
+        value = query,                   // ✨ 變更點 5: 使用傳入的 query
+        onValueChange = onQueryChange,   // ✨ 變更點 6: 使用傳入的 onQueryChange
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .onFocusChanged { focusState ->
+                isFocused = focusState.isFocused
+                if (!isFocused) {
+                    keyboardController?.hide()
+                }
+            },
         placeholder = { Text("搜尋 Youbike 站點") },
         leadingIcon = {
             Icon(
@@ -60,9 +66,8 @@ fun MySearchBar(
         ),
         keyboardActions = KeyboardActions(
             onSearch = {
-                // 清除焦點的邏輯依然保留
                 focusManager.clearFocus()
-                onSearch(query)
+                onSearch() // ✨ 變更點 7: 呼叫新的 onSearch
             }
         ),
         shape = CircleShape,
@@ -78,7 +83,7 @@ fun MySearchBar(
 @Preview(showBackground = true)
 @Composable
 fun SearchBarPreview() {
-    // 為了讓預覽能正常工作，我們需要提供一個假的狀態
+    // 為了讓預覽正常運作，我們在這裡建立一個暫時的狀態
     var previewQuery by remember { mutableStateOf("") }
     MySearchBar(
         query = previewQuery,
