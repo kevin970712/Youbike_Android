@@ -8,11 +8,7 @@ import com.android.youbike.data.StationRequest
 import com.android.youbike.data.UserPreferencesRepository
 import com.android.youbike.data.VehicleInfo
 import com.android.youbike.data.YouBikeApi
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.io.IOException
 
@@ -31,7 +27,8 @@ data class YouBikeUiState(
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val errorMessage: String? = null,
-    val toastMessage: String? = null
+    val toastMessage: String? = null,
+    val currentQuery: String = ""
 )
 
 class YouBikeViewModel(application: Application) : AndroidViewModel(application) {
@@ -40,7 +37,7 @@ class YouBikeViewModel(application: Application) : AndroidViewModel(application)
     val uiState: StateFlow<YouBikeUiState> = _uiState.asStateFlow()
 
     private var allStationsCache: List<StationInfo>? = null
-    private val userPreferencesRepository = UserPreferencesRepository(application)
+    val userPreferencesRepository = UserPreferencesRepository(application)
 
     init {
         viewModelScope.launch {
@@ -81,7 +78,7 @@ class YouBikeViewModel(application: Application) : AndroidViewModel(application)
 
     fun searchStations(query: String) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, isSearching = true, errorMessage = null) }
+            _uiState.update { it.copy(isLoading = true, isSearching = true, errorMessage = null, currentQuery = query) }
             try {
                 val stationsToSearch = allStationsCache ?: fetchAndCacheAllStations()
                 val filteredStations = if (query.isBlank()) stationsToSearch else stationsToSearch.filter {
@@ -97,7 +94,7 @@ class YouBikeViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun clearSearchResults() {
-        _uiState.update { it.copy(searchResults = emptyList(), isSearching = false, errorMessage = null) }
+        _uiState.update { it.copy(searchResults = emptyList(), isSearching = false, errorMessage = null, currentQuery = "") }
     }
 
     fun refreshFavoriteStations() {

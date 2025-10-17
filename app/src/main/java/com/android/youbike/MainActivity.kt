@@ -29,10 +29,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
@@ -45,6 +49,11 @@ import com.android.youbike.ui.theme.YoubikeTheme
 import com.android.youbike.ui.viewmodel.StationResult
 import com.android.youbike.ui.viewmodel.ViewModelFactory
 import com.android.youbike.ui.viewmodel.YouBikeViewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -68,24 +77,34 @@ class MainActivity : ComponentActivity() {
 
             YoubikeTheme(darkTheme = useDarkTheme) {
                 val navController = rememberNavController()
+                val context = LocalContext.current
+                val viewModel: YouBikeViewModel = viewModel(
+                    factory = ViewModelFactory(context.applicationContext as Application)
+                )
+
                 NavHost(navController = navController, startDestination = "main") {
                     composable("main") {
-                        val context = LocalContext.current
-                        val viewModel: YouBikeViewModel = viewModel(
-                            factory = ViewModelFactory(context.applicationContext as Application)
-                        )
                         MainScreen(
                             navController = navController,
                             viewModel = viewModel
                         )
                     }
                     composable("settings") {
+                        val currentInterval by viewModel.userPreferencesRepository.refreshInterval.collectAsState(
+                            initial = 0
+                        )
                         SettingsScreen(
                             navController = navController,
                             followSystemTheme = followSystemTheme,
                             isDarkMode = isDarkMode,
                             onFollowSystemChange = { followSystemTheme = it },
-                            onDarkModeChange = { isDarkMode = it }
+                            onDarkModeChange = { isDarkMode = it },
+                            currentInterval = currentInterval,
+                            onIntervalSelected = { seconds ->
+                                viewModel.viewModelScope.launch {
+                                    viewModel.userPreferencesRepository.saveRefreshInterval(seconds)
+                                }
+                            }
                         )
                     }
                 }
@@ -107,6 +126,41 @@ fun MainScreen(
     val focusManager = LocalFocusManager.current
     val context = LocalContext.current
     var query by rememberSaveable { mutableStateOf("") }
+
+    // ✨ 新增點 1: 這是新的、能夠感知生命週期的自動刷新邏輯 ✨
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(lifecycleOwner, viewModel) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            // 這個區塊內的程式碼，只會在 App 處於前台 (Started 狀態) 時執行。
+            // 當 App 進入背景，這個協程會被自動取消。回到前台時，再重新啟動。
+            viewModel.userPreferencesRepository.refreshInterval.flatMapLatest { interval ->
+                if (interval > 0) {
+                    // 建立一個定時發射器
+                    flow {
+                        // 初始延遲，避免 App 一打開就刷新
+                        delay(interval * 1000L)
+                        while (true) {
+                            emit(Unit)
+                            delay(interval * 1000L)
+                        }
+                    }
+                } else {
+                    emptyFlow() // 如果設定為 0 (永不)，則不執行任何操作
+                }
+            }.collect {
+                // 每當計時器發射信號，就根據目前狀態執行對應的刷新
+                val currentState = viewModel.uiState.value
+                if (!currentState.isRefreshing) {
+                    if (currentState.isSearching) {
+                        viewModel.refreshSearchResults(currentState.currentQuery)
+                    } else {
+                        viewModel.refreshFavoriteStations()
+                    }
+                }
+            }
+        }
+    }
+
 
     val onRefresh = {
         if (uiState.isSearching) {
