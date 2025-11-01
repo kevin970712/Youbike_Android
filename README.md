@@ -30,6 +30,9 @@
 
 -  [YouBike 官網](https://www.youbike.com.tw)
 
+## 倉庫結構
+- [GitHubTree](https://githubtree.mgks.dev/repo/kevin970712/Youbike_Android/master/)
+
 ## 版權與聲明
 
 本工具不屬於 YouBike 微笑單車股份有限公司
