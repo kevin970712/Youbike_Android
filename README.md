@@ -18,6 +18,8 @@
 **其他功能**
 * 黑暗模式
 * 跟隨系統主題
+* 自動刷新
+* 附近站點(需要GMS)
 
 ## 螢幕截圖
 
@@ -28,9 +30,11 @@
 
 -  [YouBike 官網](https://www.youbike.com.tw)
 
+## 倉庫結構
+- [GitHubTree](https://githubtree.mgks.dev/repo/kevin970712/Youbike_Android/master/)
+
 ## 版權與聲明
 
-本專案皆可自由共享與修改，但不可用於盈利目的。  
 本工具不屬於 YouBike 微笑單車股份有限公司
 歡迎對本專案感興趣的開發者一起參與貢獻！您可以透過 GitHub 提交 Pull Request 來改善程式碼、新增功能或修復錯誤.
 
