@@ -108,8 +108,12 @@ private fun RefreshIntervalDropdown(
         10 to "10 秒",
         15 to "15 秒",
         20 to "20 秒",
+<<<<<<< HEAD
         30 to "30 秒",
         60 to "60 秒"
+=======
+        30 to "30 秒"
+>>>>>>> parent of 6e6ded5 (v1.0.1)
     )
     var expanded by remember { mutableStateOf(false) }
 
