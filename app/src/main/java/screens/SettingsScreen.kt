@@ -71,7 +71,7 @@ fun SettingsScreen(
                         style = MaterialTheme.typography.bodyLarge
                     )
                     Text(
-                        text = "Youbike 站點查詢 v1.1.0",
+                        text = "Youbike 站點查詢 v1.0.1",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -108,12 +108,8 @@ private fun RefreshIntervalDropdown(
         10 to "10 秒",
         15 to "15 秒",
         20 to "20 秒",
-<<<<<<< HEAD
         30 to "30 秒",
-        60 to "60 秒"
-=======
-        30 to "30 秒"
->>>>>>> parent of 6e6ded5 (v1.0.1)
+        60 to "60 秒" // ✨ 修改點 ✨
     )
     var expanded by remember { mutableStateOf(false) }
 
