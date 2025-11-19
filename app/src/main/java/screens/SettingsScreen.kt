@@ -108,8 +108,7 @@ private fun RefreshIntervalDropdown(
         10 to "10 秒",
         15 to "15 秒",
         20 to "20 秒",
-        30 to "30 秒",
-        60 to "60 秒" // ✨ 修改點 ✨
+        30 to "30 秒"
     )
     var expanded by remember { mutableStateOf(false) }
 
