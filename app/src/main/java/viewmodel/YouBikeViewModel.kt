@@ -11,7 +11,6 @@ import com.android.youbike.data.YouBikeApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.io.IOException
-import kotlin.math.*
 
 data class StationResult(
     val info: StationInfo,
@@ -24,7 +23,6 @@ data class StationResult(
 data class YouBikeUiState(
     val searchResults: List<StationResult> = emptyList(),
     val favoriteStations: List<StationResult> = emptyList(),
-    val nearbyStations: List<StationResult> = emptyList(),
     val isSearching: Boolean = false,
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
@@ -47,64 +45,6 @@ class YouBikeViewModel(application: Application) : AndroidViewModel(application)
                 loadAndRefreshFavoriteStations(favoriteStationInfos)
             }
         }
-    }
-
-    fun findNearbyStations(latitude: Double, longitude: Double) {
-        viewModelScope.launch {
-            if (latitude == -1.0) {
-                _uiState.update { it.copy(isLoading = false, isRefreshing = false, errorMessage = "無法獲取位置資訊", toastMessage = "刷新失敗") }
-                return@launch
-            }
-            // 根據列表是否為空來決定是顯示初始載入還是下拉刷新
-            if (_uiState.value.nearbyStations.isEmpty()) {
-                _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            } else {
-                _uiState.update { it.copy(isRefreshing = true, errorMessage = null) }
-            }
-
-            try {
-                val allStations = allStationsCache ?: fetchAndCacheAllStations()
-                if (allStations.isEmpty()) {
-                    _uiState.update { it.copy(isLoading = false, isRefreshing = false, errorMessage = "無法獲取站點列表", toastMessage = "刷新失敗") }
-                    return@launch
-                }
-
-                val nearbyStationInfos = allStations
-                    .map { station ->
-                        station to calculateDistance(latitude, longitude, station.latitude, station.longitude)
-                    }
-                    .sortedBy { it.second }
-                    .take(20)
-                    .map { it.first }
-
-                val favoriteIds = userPreferencesRepository.favoriteStations.first().map { it.stationNo }.toSet()
-                val vehicleDataMap = fetchVehicleData(nearbyStationInfos)
-                val results = nearbyStationInfos.map { stationInfo ->
-                    val vehicleInfo = vehicleDataMap[stationInfo.stationNo]
-                    StationResult(
-                        info = stationInfo,
-                        isFavorite = stationInfo.stationNo in favoriteIds,
-                        availableBikes = vehicleInfo?.vehicleDetails?.youbike2 ?: 0,
-                        availableEBikes = vehicleInfo?.vehicleDetails?.youbike2E ?: 0,
-                        emptySpaces = vehicleInfo?.emptySpaces ?: 0
-                    )
-                }
-                _uiState.update { it.copy(isLoading = false, isRefreshing = false, nearbyStations = results, toastMessage = "刷新成功") }
-            } catch (e: Exception) {
-                _uiState.update { it.copy(isLoading = false, isRefreshing = false, errorMessage = "尋找附近站點時發生錯誤: ${e.message}", toastMessage = "刷新失敗") }
-            }
-        }
-    }
-
-    private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
-        val r = 6371 // 地球半徑 (公里)
-        val latDistance = Math.toRadians(lat2 - lat1)
-        val lonDistance = Math.toRadians(lon2 - lon1)
-        val a = sin(latDistance / 2) * sin(latDistance / 2) +
-                cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) *
-                sin(lonDistance / 2) * sin(lonDistance / 2)
-        val c = 2 * atan2(sqrt(a), sqrt(1 - a))
-        return r * c
     }
 
     fun clearToastMessage() {
